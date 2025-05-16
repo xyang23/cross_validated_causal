@@ -1,0 +1,178 @@
+---
+title: "Linear models and bootstrapping on the LaLonde dataset"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(corrplot)
+library(xtable)
+source('read_lalonde_data.R')
+
+for (col in c('treatment', 'black', 'hispanic', 
+              'married', 'nodegree', 'u74', 'u75')) {
+  lalonde[, col] <- as.factor(lalonde[, col])
+}
+
+#lalonde
+# Save selected lalonde data for python experiments. Uncomment below if needed.
+#write.csv(lalonde, "lalonde.csv", row.names = FALSE) 
+
+```
+
+
+```{r} 
+# Panels 1 and 3 of paper's Table 2. Linear models with NSW-T+subgroup. We combine Dehejia's panel B and C in Table 2 together into the 8 columns in our table.
+
+format <- function(model) {
+  # Format function for each cell.
+  res <- summary(model)$coefficients['treatment1', c(1, 4)] 
+  x <- round(res[1])
+  z <- paste('(', ifelse(res[2] < .0001, '<.0001', 
+                         round(res[2], 4)), ')', sep = '')
+  return(rbind(x, z))
+}
+
+
+generate_row <- function(group, nsw_group) { 
+  # Generate a row (with 8 linear model for each column).
+  # group: observational dataset group, including 'psid', 'psid2', 'psid3', 'cps', 'cps2', 'cps3'.
+  # nsw_group: a subset of ('treated', 'control').
+  col1 <- format(lm(re78~treatment, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col2 <- format(lm(re78~treatment + age + poly(age, 2) + education + nodegree + black + hispanic, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col3 <- format(lm(re78~treatment + re75, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col4 <- format(lm(re78~treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col5 <- format(lm(re78~treatment + age + education + nodegree + black + hispanic + married + re75 + u75, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col6 <- format(lm(re78~treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re74, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col7 <- format(lm(re78~treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75 + re74, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+  col8 <- format(lm(re78~treatment + age + education + nodegree + black + hispanic + married + re75 + u75 + u74 + re74, lalonde[lalonde$group %in% c(nsw_group, group),]))
+  
+    
+  return(cbind(col1, col2, col3, col4, col5, col6, col7, col8))
+  
+}
+
+combined_panel <- function(nsw_group, title) {
+  panel<- rbind(generate_row('control', nsw_group), 
+        generate_row('psid', nsw_group), generate_row('psid2', nsw_group), generate_row('psid3', nsw_group),
+        generate_row('cps', nsw_group), generate_row('cps2', nsw_group), generate_row('cps3', nsw_group))
+  colnames(panel) <- 1:8
+  rownames(panel) <- c('NSW Control', '', 'PSID-1', '','PSID-2', '', 'PSID-3', '',
+                        'CPS-1', '', 'CPS-2', '', 'CPS-3', '')
+  cat(title, "\n")
+  return(panel)
+}
+# Panels 1 and 3 of Table 2
+print(combined_panel(nsw_group=c('treated'), title='Panels 1 and 3 of Table 2'))
+```
+
+```{r}
+# Panels 1 and 4 of Table 2
+print(combined_panel(nsw_group=c('treated', 'control'), title='Panel 1 and 4 of Table 2'))
+```
+
+```{r}
+# Bootstrap, panel 3 of Table 3. Need to restart R notebook to get reproducible results. 
+set.seed(2024)
+bootstrap_sd <- function(group, n_bootstrap = 5000) {
+  # Boostrap the standard deviations. Dehejia's setting.
+  estimates <- matrix(NA, n_bootstrap, 8)  # Store bootstrap estimates.
+  treated <- lalonde[lalonde$group == 'treated', ]
+  subgroup <- lalonde[lalonde$group == group, ]
+  
+  for (i in 1:n_bootstrap) {
+    boot_treated <- treated[sample(nrow(treated), replace = TRUE), ]
+    boot_subgroup <- subgroup[sample(nrow(subgroup), replace = TRUE), ]
+    boot_sample <- rbind(boot_treated, boot_subgroup)
+   
+    estimates[i, 1] <- coef(lm(re78 ~ treatment, boot_sample))["treatment1"]
+    estimates[i, 2] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic, boot_sample))["treatment1"]
+    estimates[i, 3] <- coef(lm(re78 ~ treatment + re75, boot_sample))["treatment1"]
+    estimates[i, 4] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75, boot_sample))["treatment1"]
+    estimates[i, 5] <- coef(lm(re78 ~ treatment + age + education + nodegree + black + hispanic + married + re75 + u75, boot_sample))["treatment1"]
+    estimates[i, 6] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re74, boot_sample))["treatment1"]
+    estimates[i, 7] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75 + re74, boot_sample))["treatment1"]
+    estimates[i, 8] <- coef(lm(re78 ~ treatment + age + education + nodegree + black + hispanic + married + re75 + u75 + u74 + re74, boot_sample))["treatment1"]
+  }
+  rounded_sd = as.integer(round(apply(estimates, 2, sd), digits = 0))
+  return(rounded_sd)  
+}
+
+# Example usage:
+# bootstrap_sd('control', n_bootstrap=20)
+
+bootstrap_tab <- function(n_bootstrap=5000) {
+  panel <- rbind(bootstrap_sd('control', n_bootstrap=n_bootstrap), 
+        bootstrap_sd('psid', n_bootstrap=n_bootstrap), bootstrap_sd('psid2', n_bootstrap=n_bootstrap), bootstrap_sd('psid3', n_bootstrap=n_bootstrap),
+        bootstrap_sd('cps', n_bootstrap=n_bootstrap), bootstrap_sd('cps2', n_bootstrap=n_bootstrap), bootstrap_sd('cps3', n_bootstrap=n_bootstrap))
+  colnames(panel) <- 1:8
+  rownames(panel) <- c('NSW Control', 'PSID-1' ,'PSID-2', 'PSID-3',
+                        'CPS-1', 'CPS-2', 'CPS-3')
+  cat("Panel 3 of Table 3", "\n")
+  return(panel)
+}
+n_bootstrap = 5000
+bootstrap_tab(n_bootstrap=n_bootstrap)
+#xtable(bootstrap_tab(n_bootstrap=n_bootstrap))
+
+# Panel 1 of Table 3 is also included as the first row below.
+```
+
+```{r}
+# Bootstrap, panel 4 of Table 3. Need to restart R notebook to get reproducible results. 
+set.seed(2024)
+bootstrap_sd_both <- function(group, n_bootstrap = 5000) {
+  # Boostrap the standard deviations. It differs from the previous cell as it includes the NSW control group.
+  estimates <- matrix(NA, n_bootstrap, 8)  # Store bootstrap estimates.
+  treated <- lalonde[lalonde$group == 'treated', ]
+  subgroup <- lalonde[lalonde$group == group, ]
+  control <-  lalonde[lalonde$group == 'control', ]
+  
+  for (i in 1:n_bootstrap) {
+    boot_treated <- treated[sample(nrow(treated), replace = TRUE), ]
+    boot_subgroup <- subgroup[sample(nrow(subgroup), replace = TRUE), ]
+    boot_control <- control[sample(nrow(control), replace = TRUE), ]
+    
+    boot_sample <- do.call("rbind", list(boot_treated, boot_subgroup, boot_control))
+    estimates[i, 1] <- coef(lm(re78 ~ treatment, boot_sample))["treatment1"]
+    
+    estimates[i, 2] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic, boot_sample))["treatment1"]
+    estimates[i, 3] <- coef(lm(re78 ~ treatment + re75, boot_sample))["treatment1"]
+    estimates[i, 4] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75, boot_sample))["treatment1"]
+    estimates[i, 5] <- coef(lm(re78 ~ treatment + age + education + nodegree + black + hispanic + married + re75 + u75, boot_sample))["treatment1"]
+    estimates[i, 6] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re74, boot_sample))["treatment1"]
+    estimates[i, 7] <- coef(lm(re78 ~ treatment + age + poly(age, 2) + education + nodegree + black + hispanic + re75 + re74, boot_sample))["treatment1"]
+    estimates[i, 8] <- coef(lm(re78 ~ treatment + age + education + nodegree + black + hispanic + married + re75 + u75 + u74 + re74, boot_sample))["treatment1"]
+  }
+  rounded_sd = as.integer(round(apply(estimates, 2, sd), digits = 0))
+  return(rounded_sd)  
+}
+
+# Example usage
+#bootstrap_sd_both('control', n_bootstrap=20)
+
+bootstrap_tab_both <- function(n_bootstrap=5000) {
+  panel <- rbind(bootstrap_sd_both('control', n_bootstrap=n_bootstrap), 
+        bootstrap_sd_both('psid', n_bootstrap=n_bootstrap), bootstrap_sd_both('psid2', n_bootstrap=n_bootstrap), bootstrap_sd_both('psid3', n_bootstrap=n_bootstrap),
+        bootstrap_sd_both('cps', n_bootstrap=n_bootstrap), bootstrap_sd_both('cps2', n_bootstrap=n_bootstrap), bootstrap_sd_both('cps3', n_bootstrap=n_bootstrap))
+  colnames(panel) <- 1:8
+  rownames(panel) <- c('NSW Control', 'PSID-1' ,'PSID-2', 'PSID-3',
+                        'CPS-1', 'CPS-2', 'CPS-3')
+  cat("Panel 4 of Table 3", "\n")
+  return(panel)
+}
+n_bootstrap = 5000
+bootstrap_tab_both(n_bootstrap=n_bootstrap)
+#xtable(bootstrap_tab_both(n_bootstrap=n_bootstrap))
+
+# In panel 1 of Table 3, we report the results of the first row (the NSW control) from the previous cell instead, which differ slightly in magnitude than here.
+```
+
+
