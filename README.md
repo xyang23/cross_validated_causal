@@ -31,7 +31,7 @@ or
 python linear_n_obs.py
 ``` 
 
-Choise 2: Use a bash script and specify ``--cpus-per-task`` in the  for parallel computing.
+Choise 2: Use a bash script and specify ``--cpus-per-task`` for parallel computing.
 
 Detailed usage see python scripts.
 
