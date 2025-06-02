@@ -32,7 +32,7 @@ te_bias = 0.05 # bias
 k_fold = 5 # K-fold cross-validation
 d = 5 # dimensions of covariates in both data sources, here we use the same
 noise = 1 # standard deviation of noise in outcomes
-exp_model = 'aipw' # 'aipw', 'response_fuc', 'mean_diff' - see comments in causal_sim.py
+exp_model = 'aipw' # 'aipw', 'response_func', 'mean_diff' - see comments in causal_sim.py
 stratified_kfold = True # whether to stratify for cross-validation - see comments in causal_sim.py
 
 # storing results
