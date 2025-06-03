@@ -10,7 +10,7 @@ import os
 from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
 
 """
-Example use of the no-covariate setting
+Example use of the no-covariate setting.
 """
 n_exp = 100 # number of experimental data 
 n_obs = 200 # number of observational data 
