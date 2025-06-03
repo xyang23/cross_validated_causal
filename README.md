@@ -1,11 +1,20 @@
 # cross_validated_causal
+##  Example use
+Install missing packages if needed. In the terminal, run 
+```
+python example_use.py
+```
+Results will be printed to the terminal.
 
 ## No-covariate setting
-``mean_eps.py``: Varying bias.
 
-``mean_n_obs.py``: Varying the number of observational data.
+### Code 
+
+``mean_eps.py``: Experiments varying bias.
+
+``mean_n_obs.py``: Experiments varying the number of observational data.
+
 ### Usage
-Install missing packages if needed.
 
 Run 
 ```
@@ -18,9 +27,13 @@ python mean_n_obs.py
 Results are saved as JSON files (for data) and PDF files (for figures). Detailed usage see python scripts.
 
 ## Linear setting
-``mean_eps.py``: Varying bias.
 
-``mean_n_obs.py``: Varying the number of observational data.
+### Code 
+
+``mean_eps.py``: Experiments varying bias.
+
+``mean_n_obs.py``: Experiments varying the number of observational data.
+
 ### Usage
 Choice 1: Directly run 
 ```
