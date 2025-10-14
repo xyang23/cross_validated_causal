@@ -14,6 +14,8 @@ Results will be printed to the terminal.
 
 ``mean_n_obs.py``: Experiments varying the number of observational data.
 
+``mean_n_exp.py``: Experiments varying the number of experimental data.
+
 ### Usage
 
 Run 
@@ -24,7 +26,11 @@ or
 ```
 python mean_n_obs.py
 ```
-Results are saved as JSON files (for data) and PDF files (for figures). Detailed usage see python scripts.
+or 
+```
+python mean_n_exp.py
+```
+Results are saved as JSON files (for data) and PDF files (for figures). Detailed usage see python scripts. The current scripts may take a few minutes each. 
 
 ## Linear setting
 
