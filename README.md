@@ -36,9 +36,9 @@ Results are saved as JSON files (for data) and PDF files (for figures). Detailed
 
 ### Code 
 
-``mean_eps.py``: Experiments varying bias.
+``linear_eps.py``: Experiments varying bias.
 
-``mean_n_obs.py``: Experiments varying the number of observational data.
+``linear_n_obs.py``: Experiments varying the number of observational data.
 
 ### Usage
 Choice 1: Directly run 
