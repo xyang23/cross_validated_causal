@@ -3,6 +3,7 @@ from sklearn.model_selection import LeaveOneOut, KFold, StratifiedKFold
 from sklearn.linear_model import LinearRegression
 import pandas as pd
 import torch
+import scipy.stats as stats
 
 random_seed = 2024
 np.random.seed(random_seed)
@@ -402,3 +403,24 @@ def lalonde_get_data(df, group, variables, subsample_idx=None):
         X_obs = np.concatenate((X_obs, X_exp_t), axis=0)
 
     return X_exp, X_obs
+
+
+def t_test_normal_baseline(x_exp, x_obs, alpha_threshold=0.05, equal_var=True):
+    '''
+    No-covariate case, t-test baseline. 
+
+    Args:
+        x_exp: experimental sample
+        x_obs: observational sample
+        alpha_threshold: significance threshold    
+        equal_var: True if two populations are assumed to have the same variance.
+    Return:
+        x_exp sample mean if rejecting the null, pooled sample mean otherwise.
+    '''
+    t_test_result = stats.ttest_ind(x_exp, x_obs, equal_var=equal_var)
+    if t_test_result.pvalue < alpha_threshold:
+        # reject the null that equal mean
+        #print("reject the null that equal mean, use X_exp sample mean")
+        return np.mean(x_exp)
+    else:
+        return np.mean(np.concatenate((x_exp, x_obs), axis=0))

@@ -11,11 +11,12 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data, t_test_normal_baseline
 
 random_seed = 2024
 np.random.seed(random_seed)
 
+        
 x_bins = 20 # bins on x axis, 50 in the paper
 eps_range = 0.2 # range for bias
 eps_vals = np.linspace(0, eps_range, x_bins) # different bias
@@ -34,6 +35,7 @@ exp_only = np.zeros((x_bins, n_sims)) # only using X_exp
 obs_only = np.zeros((x_bins, n_sims)) # only using X_obs
 # Q_values_all = np.zeros((n_sims, lambda_bin))
 lambda_opt_all = np.zeros((x_bins, n_sims)) # lambda values chosen by cross-validation
+t_test = np.zeros((x_bins, n_sims)) # T test if two arrays have the same mean, pool if yes. 
 
 for sim in range(n_sims):
     X_exp = np.random.normal(true_te, sd_exp, size=n_exp)
@@ -47,16 +49,18 @@ for sim in range(n_sims):
         lambda_opt_all[x_ind][sim] = lambda_opt
         ours_cv[x_ind][sim] =  theta_opt.theta(lambda_opt, X_exp, X_obs)
         exp_only[x_ind][sim] = np.mean(X_exp)
-        obs_only[x_ind][sim] =  np.mean(X_obs)
+        obs_only[x_ind][sim] = np.mean(X_obs)
+        t_test[x_ind][sim] = t_test_normal_baseline(x_exp=X_exp, x_obs=X_obs)
     
 # save the checkpoint
-data_log = {'Experiment': 'mean_est_eps_vs_MSE',
+data_log = {'Experiment': 'mean_est_eps_t_test',
             'Settings': {'x_bins': x_bins, 'n_sims': n_sims, 'lambda_bin': lambda_bin, 'random_seed': random_seed, 
                          'sd_exp': sd_exp, 'sd_obs': sd_obs, 'eps_range': eps_range, 'n_exp': n_exp, 'n_obs': n_obs},
             'ours_cv': ours_cv.tolist(),
             'exp_only': exp_only.tolist(),
             'obs_only': obs_only.tolist(),
             'lambda_opt_all': lambda_opt_all.tolist(),
+            't_test': t_test.tolist(),
            }
 today = str(date.today())
 dir_path =  f"./{today}/"
@@ -79,6 +83,7 @@ lambda_opt_mean = np.mean(lambda_opt_all, axis=1)
 ours_cv_mean = np.mean((ours_cv - true_te)**2, axis=1)
 exp_only_mean = np.mean((exp_only - true_te)**2, axis=1)
 obs_only_mean = np.mean((obs_only - true_te)**2, axis=1)
+t_test_mean = np.mean((t_test - true_te)**2, axis=1)
 
 filename_fig = filename
 ax = plt.gca()
@@ -91,7 +96,9 @@ plt.rcParams['font.size'] = 10
 markersize = 3.6
 plt.plot(eps_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label='Only use $X^{\mathrm{exp}}$')
 plt.plot(eps_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label='Only use $X^{\mathrm{obs}}$')
+plt.plot(eps_vals, t_test_mean, color='blue', marker='*',  markersize=markersize, label=r'T-test baseline')
 plt.plot(eps_vals, ours_cv_mean, color='orange', marker='.',  markersize=markersize, label=r'Ours, $\beta(\widehat\theta (\widehat\lambda))$')
+
 
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
