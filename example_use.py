@@ -23,7 +23,7 @@ lambda_vals = np.linspace(0, 1, lambda_bin) # candidate lambda values
 X_exp = np.random.normal(true_te, sd_exp, size=n_exp)
 X_obs = np.random.normal(true_te + eps, sd_obs, size=n_obs)
 #_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None) # leave-one-out cross-validation
-_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=5) # five cross-validation
+_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=5,  random_state=2024) # five cross-validation
 
 estimate = theta_opt.theta(lambda_opt, X_exp, X_obs)
 print('--------------------------------------------------------------------------------')
@@ -43,7 +43,7 @@ eps = 0.05 # bias
 lambda_bin = 5 # number of candidate values of lambda, 50 in the paper
 lambda_vals = np.linspace(0, 1, lambda_bin) # candidate lambda values
 k_fold = 5 # K-fold cross-validation
-exp_model ='aipw' # 'aipw', 'response_func', 'mean_diff' - see comments in causal_sim.py
+exp_model ='response_func' # 'aipw', 'response_func', 'mean_diff' - see comments in causal_sim.py
 d = 5 # dimensions of covariates in both data sources, here we use the same
 
 true_coef = np.random.normal(size=2*d) # linear model coefficients to generate data
@@ -54,7 +54,7 @@ Z_obs, A_obs, Y_obs = generate_data(n_obs, d, true_coef_obs, true_te + eps, tild
 
 X_exp = np.concatenate((Z_exp, A_exp.reshape(-1, 1), Y_exp.reshape(-1, 1)), axis=1) # structured as: covariates, treatment, outcome
 X_obs = np.concatenate((Z_obs, A_obs.reshape(-1, 1), Y_obs.reshape(-1, 1)), axis=1)
-_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', k_fold=k_fold, d=d, exp_model=exp_model)
+_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', k_fold=k_fold, d=d, exp_model=exp_model, random_state=2024)
 estimate = theta_opt.beta().item()
 
 print('--------------------------------------------------------------------------------')

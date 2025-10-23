@@ -5,7 +5,7 @@ This can be used to reproduce the intro figure. For full configurations, use lal
 
 Usage: 
     Modify dir_path to save the checkpoint. 
-    Use --group to indicate which observational group to use. Use --is_bootstrap to enable bootstrap. For example, 
+    Use --group to indicate which observational group to use. Use --variables to indicate covariates. Use --is_bootstrap to enable bootstrap. For example, 
     python lalonde_intro_linear.py --group "psid"
     python lalonde_intro_linear.py --group "psid" --is_bootstrap
 """
