@@ -1,4 +1,4 @@
-# cross_validated_causal
+# Cross-Validated Causal Inference
 ##  Example use
 Install missing packages if needed. In the terminal, run 
 ```
