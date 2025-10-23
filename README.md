@@ -65,11 +65,15 @@ Download the ``.txt`` files of **NSW Data Files (Dehejia-Wahha Sample)** and **P
 
 ``read_lalonde_data.R``: Script to read data, sourced in ``lalonde_baseline.Rmd``.
 
-``lalonde_cv.py``: Run our method on the LaLonde dataset.
+``lalonde_cv.py``: Run our method on the LaLonde dataset (linear setting). Full configurations.
 
-``lalonde_cv_bootstrap.py``: Bootstrap our method on the LaLonde dataset. 
+``lalonde_cv_bootstrap.py``: Bootstrap our method on the LaLonde dataset (linear setting). Full configurations.
 
 ``read_lalonde_data.py``: Script to read data and generate ``lalonde.csv``. Python alternative of ``read_lalonde_data.R``. 
+
+``lalonde_intro_mean.py``: Run our method on the LaLonde dataset (no-covariate setting). Single configuration. This is used for the intro figure.
+
+``lalonde_intro_linear.py``: Run our method on the LaLonde dataset (linear setting). Single configuration. This is used for the intro figure.
 
 ### Usage
 
@@ -86,10 +90,18 @@ python lalonde_cv.py
 or 
 ```
 python lalonde_cv_bootstrap.py
+```
+or 
+```
+python lalonde_intro_mean.py
+```
+or 
+```
+python lalonde_intro_linear.py
 ``` 
-Results are saved as JSON files (for data) and TXT files (for tables).
+Results are saved as JSON files (for data) and TXT files (for tables or texts).
 
-Choise 2: Use a bash script and specify ``--cpus-per-task`` for parallel computing.
+Choise 2: For full configurations, use a bash script and specify ``--cpus-per-task`` for parallel computing. For single configuration, use arguments specify in the script.
 
 
 
