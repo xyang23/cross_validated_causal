@@ -7,7 +7,11 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+from causal_sim import cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+print('--------------------------------------------------------------------------------')
+print('Running')
+print('--------------------------------------------------------------------------------')
+
 
 """
 Example use of the no-covariate setting.
@@ -23,7 +27,9 @@ lambda_vals = np.linspace(0, 1, lambda_bin) # candidate lambda values
 
 X_exp = np.random.normal(true_te, sd_exp, size=n_exp)
 X_obs = np.random.normal(true_te + eps, sd_obs, size=n_obs)
-_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None)
+#_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None) # leave-one-out cross-validation
+_, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=5) # five cross-validation
+
 estimate = theta_opt.theta(lambda_opt, X_exp, X_obs)
 print('--------------------------------------------------------------------------------')
 print('No-covariate setting')
