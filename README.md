@@ -75,6 +75,8 @@ Download the ``.txt`` files of **NSW Data Files (Dehejia-Wahha Sample)** and **P
 
 ``lalonde_intro_linear.py``: Run our method on the LaLonde dataset (linear setting). Single configuration. This is used for the intro figure.
 
+``lalonde_synthetic_linear.py``: Experiments on synthetic data based on LaLonde dataset (linear setting). Single configuration.
+
 ### Usage
 
 The R Markdown script can be run in [RStudio](https://rmarkdown.rstudio.com/lesson-2.html).
@@ -98,6 +100,10 @@ python lalonde_intro_mean.py
 or 
 ```
 python lalonde_intro_linear.py
+```
+or 
+```
+python lalonde_synthetic_linear.py
 ``` 
 Results are saved as JSON files (for data) and TXT files (for tables or texts).
 
