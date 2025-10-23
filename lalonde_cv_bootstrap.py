@@ -1,5 +1,5 @@
 """
-Run bootstrapping for our method on the LaLonde dataset.
+Run bootstrapping for our method on the LaLonde dataset. Full configurations.
 
 Usage: 
     Modify dir_path to save the checkpoint. 

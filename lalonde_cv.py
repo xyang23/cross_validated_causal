@@ -1,5 +1,5 @@
 """
-Run our method on the LaLonde dataset.
+Run our method on the LaLonde dataset. Full configurations.
 
 Usage: 
     Modify dir_path to save the checkpoint. 
