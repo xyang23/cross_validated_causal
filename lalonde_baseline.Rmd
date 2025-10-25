@@ -22,7 +22,7 @@ for (col in c('treatment', 'black', 'hispanic',
 
 
 ```{r} 
-# Panels 1 and 3 of paper's Table 2. Linear models with NSW-T+subgroup. We combine Dehejia's panel B and C in Table 2 together into the 8 columns in our table.
+# Panels 1 and 3 of paper's full configuration table. Linear models with NSW-T+subgroup. We combine Dehejia's panel B and C in Table 2 together into the 8 columns in our table.
 
 format <- function(model) {
   # Format function for each cell.
@@ -69,17 +69,17 @@ combined_panel <- function(nsw_group, title) {
   cat(title, "\n")
   return(panel)
 }
-# Panels 1 and 3 of Table 2
-print(combined_panel(nsw_group=c('treated'), title='Panels 1 and 3 of Table 2'))
+# Panels 1 and 3 of full configuration table
+print(combined_panel(nsw_group=c('treated'), title='Panels 1 and 3 of full configuration table'))
 ```
 
 ```{r}
-# Panels 1 and 4 of Table 2
-print(combined_panel(nsw_group=c('treated', 'control'), title='Panel 1 and 4 of Table 2'))
+# Panels 1 and 4 of full configuration table
+print(combined_panel(nsw_group=c('treated', 'control'), title='Panel 1 and 4 of full configuration table'))
 ```
 
 ```{r}
-# Bootstrap, panel 3 of Table 3. Need to restart R notebook to get reproducible results. 
+# Bootstrap, panel 3 of full configuration bootstrap table. Need to restart R notebook to get reproducible results. 
 set.seed(2024)
 bootstrap_sd <- function(group, n_bootstrap = 5000) {
   # Boostrap the standard deviations. Dehejia's setting.
@@ -115,18 +115,18 @@ bootstrap_tab <- function(n_bootstrap=5000) {
   colnames(panel) <- 1:8
   rownames(panel) <- c('NSW Control', 'PSID-1' ,'PSID-2', 'PSID-3',
                         'CPS-1', 'CPS-2', 'CPS-3')
-  cat("Panel 3 of Table 3", "\n")
+  cat("Panel 3 of bootstrap table", "\n")
   return(panel)
 }
 n_bootstrap = 5000
 bootstrap_tab(n_bootstrap=n_bootstrap)
 #xtable(bootstrap_tab(n_bootstrap=n_bootstrap))
 
-# Panel 1 of Table 3 is also included as the first row below.
+# Panel 1 of bootstrap table is also included as the first row below.
 ```
 
 ```{r}
-# Bootstrap, panel 4 of Table 3. Need to restart R notebook to get reproducible results. 
+# Bootstrap, panel 4 of bootstrap table. Need to restart R notebook to get reproducible results. 
 set.seed(2024)
 bootstrap_sd_both <- function(group, n_bootstrap = 5000) {
   # Boostrap the standard deviations. It differs from the previous cell as it includes the NSW control group.
@@ -165,14 +165,14 @@ bootstrap_tab_both <- function(n_bootstrap=5000) {
   colnames(panel) <- 1:8
   rownames(panel) <- c('NSW Control', 'PSID-1' ,'PSID-2', 'PSID-3',
                         'CPS-1', 'CPS-2', 'CPS-3')
-  cat("Panel 4 of Table 3", "\n")
+  cat("Panel 4 of bootstrap table", "\n")
   return(panel)
 }
 n_bootstrap = 5000
 bootstrap_tab_both(n_bootstrap=n_bootstrap)
 #xtable(bootstrap_tab_both(n_bootstrap=n_bootstrap))
 
-# In panel 1 of Table 3, we report the results of the first row (the NSW control) from the previous cell instead, which differ slightly in magnitude than here.
+# In panel 1 of the bootstrap table, we report the results of the first row (the NSW control) from the previous cell instead, which differ slightly in magnitude than here.
 ```
 
 
