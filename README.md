@@ -61,7 +61,7 @@ Download the ``.txt`` files of **NSW Data Files (Dehejia-Wahha Sample)** and **P
 
 ### Code
 
-``lalonde_baseline.Rmd``: Estimation and bootstrap for baselines in Table 2 and 3. 
+``lalonde_baseline.Rmd``: Estimation and bootstrap for linear model baselines for full configuration. 
 
 ``read_lalonde_data.R``: Script to read data, sourced in ``lalonde_baseline.Rmd``.
 
