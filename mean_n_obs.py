@@ -11,7 +11,7 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data, t_test_normal_baseline
+from causal_sim import cross_validation, t_test_normal_baseline
 
 random_seed = 2024
 np.random.seed(random_seed)
@@ -91,12 +91,12 @@ ax.spines['left'].set_color('white')
 ax.spines['bottom'].set_color('white')
 
 markersize = 3.6
-plt.plot(n_data_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label='Only use $X^{\mathrm{exp}}$')
-plt.plot(n_data_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label='Only use $X^{\mathrm{obs}}$')
+plt.plot(n_data_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label=r'Only use $X^{\mathrm{exp}}$')
+plt.plot(n_data_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label=r'Only use $X^{\mathrm{obs}}$')
 plt.plot(n_data_vals, t_test_mean, color='blue', marker='*',  markersize=markersize, label=r'T-test baseline')
 plt.plot(n_data_vals, ours_cv_mean, color='orange', marker='.',  markersize=markersize, label=r'Ours, $\beta(\widehat\theta (\widehat\lambda))$')
 
-plt.xlabel('$N^{\mathrm{obs}}$', fontsize=14)
+plt.xlabel(r'$N^{\mathrm{obs}}$', fontsize=14)
 plt.ylabel('Empirical MSE', fontsize=14)
 plt.legend(fontsize=12)
 plt.tight_layout()
@@ -126,12 +126,12 @@ if (sd_exp == 1 and sd_obs == 1) or (sd_exp == 10 and sd_obs == 10):
     markersize = 3.6
     plt.plot(n_data_vals, y_thresh*np.ones_like(exp_only_mean), linestyle='--', color='grey')    
     
-    plt.xlabel('$N^{\mathrm{obs}}$', fontsize=14)
+    plt.xlabel(r'$N^{\mathrm{obs}}$', fontsize=14)
     plt.ylabel('Empirical MSE', fontsize=14)
     plt.yscale('function', functions=(stretch, inv_stretch))
     
-    plt.plot(n_data_vals, exp_only_mean, color='green', marker='x', markersize=markersize, label='Only use $X^{\mathrm{exp}}$')
-    plt.plot(n_data_vals, obs_only_mean, color='brown', marker='v', markersize=markersize, label='Only use $X^{\mathrm{obs}}$')
+    plt.plot(n_data_vals, exp_only_mean, color='green', marker='x', markersize=markersize, label=r'Only use $X^{\mathrm{exp}}$')
+    plt.plot(n_data_vals, obs_only_mean, color='brown', marker='v', markersize=markersize, label=r'Only use $X^{\mathrm{obs}}$')
     plt.plot(n_data_vals, t_test_mean, color='blue', marker='*',  markersize=markersize, label=r'T-test baseline')
     plt.plot(n_data_vals, ours_cv_mean, color='orange', marker='.', markersize=markersize, label=r'Ours, $\beta(\widehat\theta (\widehat\lambda))$')
     plt.xticks([1, 51, 101, 151, 201, 251, 301], fontsize=12) 
