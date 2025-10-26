@@ -2,7 +2,7 @@
 Simulations varying bias for the no-covariate setting. 
 
 Usage: 
-    Modify dir_path to save the checkpoint and figures. When running, ignore the SyntaxWarning for figure production.
+    Modify dir_path to save the checkpoint and figures.
 """
 
 import numpy as np
@@ -11,7 +11,7 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data, t_test_normal_baseline
+from causal_sim import cross_validation, t_test_normal_baseline
 
 random_seed = 2024
 np.random.seed(random_seed)
@@ -94,8 +94,8 @@ ax.spines['bottom'].set_color('white')
 plt.rcParams['font.size'] = 10
 
 markersize = 3.6
-plt.plot(eps_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label='Only use $X^{\mathrm{exp}}$')
-plt.plot(eps_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label='Only use $X^{\mathrm{obs}}$')
+plt.plot(eps_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label=r'Only use $X^{\mathrm{exp}}$')
+plt.plot(eps_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label=r'Only use $X^{\mathrm{obs}}$')
 plt.plot(eps_vals, t_test_mean, color='blue', marker='*',  markersize=markersize, label=r'T-test baseline')
 plt.plot(eps_vals, ours_cv_mean, color='orange', marker='.',  markersize=markersize, label=r'Ours, $\beta(\widehat\theta (\widehat\lambda))$')
 
@@ -122,8 +122,8 @@ plt.rcParams['font.size'] = 10
 
 markersize = 5
 lambda_opt_ci = conf_interval(lambda_opt_all)
-plt.plot(eps_vals, lambda_opt_mean, color='blue', label='Mean of $\widehat\lambda$ selected by cross-validation', marker='x',  markersize=markersize)
-plt.fill_between(eps_vals, *lambda_opt_ci, color='blue', alpha=0.2, label='$\pm$ Standard deviation of $\widehat\lambda$')
+plt.plot(eps_vals, lambda_opt_mean, color='blue', label=r'Mean of $\widehat\lambda$ selected by cross-validation', marker='x',  markersize=markersize)
+plt.fill_between(eps_vals, *lambda_opt_ci, color='blue', alpha=0.2, label=r'$\pm$ Standard deviation of $\widehat\lambda$')
 
 exp_ours_ratio = np.divide(exp_only_mean, ours_cv_mean)
 
