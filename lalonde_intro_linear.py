@@ -17,7 +17,7 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+from causal_sim import cross_validation, lalonde_get_data
 
 import dask
 import pandas as pd
@@ -53,7 +53,8 @@ X_exp, X_obs = lalonde_get_data(df, group, variables)
 
 # Experimental data 
 # variables = ['age', 'education', 'nodegree', 'black', 'hispanic', 'married', 're75', 'u75', 'u74', 're74']
-d = len(variables)
+d_exp = len(variables)
+d_obs = len(variables)
 X_exp, X_obs = lalonde_get_data(df, group, variables)
 
 # storing results
@@ -77,12 +78,12 @@ for sim in range(n_sims):
     else: 
         X_exp_in_use = X_exp
         X_obs_in_use = X_obs
-    Z_exp = X_exp_in_use[:, :d]
-    A_exp = X_exp_in_use[:, d]
+    Z_exp = X_exp_in_use[:, :d_exp]
+    A_exp = X_exp_in_use[:, d_exp]
     Y_exp = X_exp_in_use[:, -1] 
     
-    Z_obs = X_obs_in_use[:, :d]
-    A_obs = X_obs_in_use[:, d]
+    Z_obs = X_obs_in_use[:, :d_obs]
+    A_obs = X_obs_in_use[:, d_obs]
     Y_obs = X_obs_in_use[:, -1] 
 
     exp_model = LinearRegression()
@@ -93,7 +94,7 @@ for sim in range(n_sims):
     obs_model.fit(np.concatenate((A_obs.reshape(-1, 1), Z_obs), axis=1), Y_obs)
     obs_estimate = obs_model.coef_[0]
 
-    Q_values, lambda_opt, theta_opt = cross_validation(X_exp_in_use, X_obs_in_use, lambda_vals, mode='linear', d=d, exp_model='response_func', k_fold=5, random_state=sim)
+    Q_values, lambda_opt, theta_opt = cross_validation(X_exp_in_use, X_obs_in_use, lambda_vals, mode='linear', d_exp=d_exp, d_obs=d_obs, exp_model='response_func', k_fold=5, random_state=sim)
 
     lambda_opt_all[sim] = lambda_opt
     ours_cv[sim] =  theta_opt.beta().item()

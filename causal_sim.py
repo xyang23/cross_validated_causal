@@ -41,11 +41,12 @@ def generate_data(n, d, true_mu_coef, true_te, pi_func, noise=0.1, rng=None):
 
 class model_class(torch.nn.Module):
     """ Class to define models. We use torch here to enable future extensions that require gradient descent"""
-    def __init__(self, mode='mean', d=None, exp_model='aipw', stratified_kfold=False, rng=None):
+    def __init__(self, mode='mean', d_exp=None, d_obs=None, exp_model='aipw', stratified_kfold=False, rng=None):
         """ 
         Args:
             mode: 'mean' - no-covariate setting; 'linear' - linear setting
-            d: in linear setting, dimension of covariates in observational data (exclude treatment)
+            d_exp: in linear setting, dimension of covariates in experimental data (exclude treatment)
+            d_obs: in linear setting, dimension of covariates in observational data (exclude treatment)
             exp_model: in linear setting, estimator on experimental data used to compute the experimental loss, can be:
                 'aipw' - the AIPW estimator
                 'mean_diff' - the outcome mean difference between treated
@@ -58,13 +59,14 @@ class model_class(torch.nn.Module):
         self.mode = mode
         self.theta = None # theta(...) is to predict with input theta, currently only used in no-covariate setting
         self.theta_model = None # currently only used in linear setting
-        self.d = d 
+        self.d_exp = d_exp
+        self.d_obs = d_obs
         self.exp_model = exp_model # for linear mode
         self.stratified_kfold = stratified_kfold 
         self.rng = rng
         if self.mode == 'linear':
-            assert d is not None, "number of covariates of obs (d) must be specified in the linear setting"
-            self.theta_model = torch.nn.Parameter(torch.zeros(d + 2))  # [Treatment coef, other coef, bias]      
+            assert d_obs is not None, "number of covariates of obs (d_obs) must be specified in the linear setting"
+            self.theta_model = torch.nn.Parameter(torch.zeros(d_obs + 2))  # [Treatment coef, other coef, bias]      
                     
     def forward(self):
         if self.mode == 'linear':
@@ -97,21 +99,21 @@ class model_class(torch.nn.Module):
             self.theta = self.mean_est
         if self.mode == 'linear':
             # use close form solution    
-            beta_exp_precompute = compute_exp_minmizer(X_exp, mode=self.mode, exp_model=self.exp_model, d=self.d)
+            beta_exp_precompute = compute_exp_minmizer(X_exp, mode=self.mode, exp_model=self.exp_model, d_exp=self.d_exp)
             if lambda_ == 0: 
                 # directly return minimizer of exp, since otherwise l_matrix is singular in close form solution 
-                padded_mini = torch.zeros(self.d + 2)
+                padded_mini = torch.zeros(self.d_obs + 2)
                 padded_mini[0] = beta_exp_precompute
                 self.theta_model = torch.nn.Parameter(padded_mini)
                 return
             
-            Z = X_obs[:, :self.d]
-            A = X_obs[:, self.d]
+            Z = X_obs[:, :self.d_obs]
+            A = X_obs[:, self.d_obs]
             intercept = torch.ones((X_obs.shape[0], 1))
             Y = X_obs[:, -1] 
             
             A_Z = torch.cat((torch.tensor(A).reshape(-1, 1), torch.tensor(Z), intercept), dim=1) # n_obs * d+1
-            e1 = torch.zeros(self.d + 1 + 1) # + intercept
+            e1 = torch.zeros(self.d_obs + 1 + 1) # + intercept
             e1[0] = 1
             e1 = e1.reshape(-1, 1) # d+2 * 1
             l_matrix =  (1 - lambda_ ) * e1 @ e1.T + lambda_ / X_obs.shape[0] * A_Z.T @ A_Z
@@ -149,7 +151,7 @@ class model_class(torch.nn.Module):
             return self.theta_model[0]
      
         
-def compute_exp_minmizer(X, mode='linear', exp_model='aipw', stratified_kfold=False, d=None, rng=None): 
+def compute_exp_minmizer(X, mode='linear', exp_model='aipw', stratified_kfold=False, d_exp=None, rng=None): 
     ''' 
     Compute the estimate on experimental data.
     
@@ -157,27 +159,29 @@ def compute_exp_minmizer(X, mode='linear', exp_model='aipw', stratified_kfold=Fa
         X: experimental data
         mode: only supports 'linear'
         exp_model: 'aipw' or 'mean_diff' or 'response_func'
-            'aipw' - the AIPW estimator;
+            'aipw' - the AIPW estimator, using the true_pi_func as propensity score;
             'mean_diff' - the outcome mean difference between treated;
             'response_func' - the plug-in estimator using linear model; where the estimate is just the treatment coefficient
         stratified_kfold: True to stratify for train/inference splitting on treatment
-        d: in linear setting, dimension of covariates in experimental data (exclude treatment)
+        d_exp: in linear setting, dimension of covariates in experimental data (exclude treatment)
         rng: random number generator
         
     Return: estimated treatment effect from experimental data
     '''
+    if mode == 'mean':
+        return 
     if mode == 'linear':
-        assert d is not None, "please specify d in compute_exp_minmizer"
-        Z_exp_all = X[:, :d]
-        A_exp_all = X[:, d]
+        assert d_exp is not None, "please specify d_exp in compute_exp_minmizer"
+        Z_exp_all = X[:, :d_exp]
+        A_exp_all = X[:, d_exp]
         Y_exp_all = X[:, -1] 
         if exp_model == 'aipw' and stratified_kfold:
             tv_split = StratifiedKFold(n_splits=2)
             numerator = tv_split.split(Z_exp_all, A_exp_all)
             for train_index, val_index in numerator:
                 X_t, X_v = X[train_index], X[val_index]
-                Z_t, A_t, Y_t = X_t[:, :d], X_t[:, d], X_t[:, -1] 
-                Z_v, A_v, Y_v = X_v[:, :d], X_v[:, d], X_v[:, -1]
+                Z_t, A_t, Y_t = X_t[:, :d_exp], X_t[:, d_exp], X_t[:, -1] 
+                Z_v, A_v, Y_v = X_v[:, :d_exp], X_v[:, d_exp], X_v[:, -1]
                 break # one split suffices
         else: 
             # naively split into 2 folds
@@ -204,7 +208,7 @@ def compute_exp_minmizer(X, mode='linear', exp_model='aipw', stratified_kfold=Fa
         return beta_exp
 
 
-def L_exp(beta, X, mode='mean', beta_exp_precompute=None, exp_model='aipw', stratified_kfold=False, d=None, rng=None):
+def L_exp(beta, X, mode='mean', beta_exp_precompute=None, exp_model='aipw', stratified_kfold=False, d_exp=None, rng=None):
     ''' 
     Compute the loss on experimental data.
     
@@ -217,7 +221,7 @@ def L_exp(beta, X, mode='mean', beta_exp_precompute=None, exp_model='aipw', stra
             'response_func' - the plug-in estimator using linear model; where the estimate is just the treatment coefficient
         beta_exp_precompute: precomputed experimental estimate, if applicable, to speed up computation
         stratified_kfold: True to stratify for train/inference splitting on treatment
-        d: dimension of covariates in experimental data (exclude treatment)
+        d_exp: dimension of covariates in experimental data (exclude treatment)
         
     Return: loss of scalar beta on experimental data
     '''
@@ -225,15 +229,15 @@ def L_exp(beta, X, mode='mean', beta_exp_precompute=None, exp_model='aipw', stra
         return np.mean((X - beta) ** 2)  # experiments were run under np.sum, but should be equivalent 
     if mode == 'linear':
         if beta_exp_precompute == None:
-            assert d is not None, "please specify d in L_exp"
-            beta_exp = compute_exp_minmizer(X, mode=mode, exp_model=exp_model, stratified_kfold=stratified_kfold, d=d, rng=rng)
+            assert d_exp is not None, "please specify d_exp in L_exp"
+            beta_exp = compute_exp_minmizer(X, mode=mode, exp_model=exp_model, stratified_kfold=stratified_kfold, d_exp=d_exp, rng=rng)
             beta_exp = torch.tensor(beta_exp)
         else: 
             beta_exp = torch.tensor(beta_exp_precompute)
         return (beta_exp - beta)**2
         
 
-def L_obs(theta_model, X, mode='mean', d=None):
+def L_obs(theta_model, X, mode='mean', d_obs=None):
     ''' 
     Compute the loss on observational data.
     
@@ -248,16 +252,16 @@ def L_obs(theta_model, X, mode='mean', d=None):
     if mode == 'mean':
         return np.mean((np.mean(X) - theta_model) ** 2) # experiement were run under np.sum, but should be equivalent 
     if mode == 'linear':
-        assert d is not None, "please specify d in L_obs"
+        assert d_obs is not None, "please specify d_obs in L_obs"
         X = torch.tensor(X, dtype=torch.float64)
-        Z = X[:, :d]
-        A = X[:, d]
+        Z = X[:, :d_obs]
+        A = X[:, d_obs]
         Y = X[:, -1] 
         X_pred = torch.matmul(torch.cat([A.view(-1, 1), Z], dim=1), theta_model[:-1]) + theta_model[-1] 
         return torch.mean((X_pred - Y) ** 2)
    
         
-def combined_loss(theta, X_exp, X_obs, lambda_, mode='mean', beta_exp_precompute=None, exp_model='aipw', stratified_kfold=False, d=None, rng=None):
+def combined_loss(theta, X_exp, X_obs, lambda_, mode='mean', beta_exp_precompute=None, exp_model='aipw', stratified_kfold=False, d_exp=None, d_obs=None, rng=None):
     ''' 
     Compute the combined loss on experimental and observational data.
     
@@ -273,23 +277,24 @@ def combined_loss(theta, X_exp, X_obs, lambda_, mode='mean', beta_exp_precompute
             'mean_diff' - the outcome mean difference between treated;
             'response_func' - the plug-in estimator using linear model; where the estimate is just the treatment coefficient
         stratified_kfold: True to stratify for train/inference splitting on treatment
-        d: in linear setting, dimension of covariates (exclude treatment), here we use it for both experimental and observational data 
+        d_exp: in linear setting, dimension of covariates in experimental data (exclude treatment) 
+        d_obs: in linear setting, dimension of covariates in observational data (exclude treatment)
         rng: random number generator
         
-    Return: loss of observational model on observational data
+    Return: combined loss
     '''
     
     if mode == 'mean':
         combined = (1 - lambda_) * L_exp(theta.beta(lambda_, X_exp, X_obs), X_exp, mode=mode) +  lambda_ * L_obs(theta(lambda_, X_exp, X_obs), X_obs, mode=mode) 
     if mode == 'linear': 
         assert d is not None, "please specify d in combined_loss"
-        loss_exp = L_exp(theta.beta(), X_exp, mode=mode, beta_exp_precompute=beta_exp_precompute, exp_model=exp_model, stratified_kfold=stratified_kfold, d=d, rng=rng)
-        loss_obs = L_obs(theta.theta_model, X_obs, mode=mode, d=d) 
+        loss_exp = L_exp(theta.beta(), X_exp, mode=mode, beta_exp_precompute=beta_exp_precompute, exp_model=exp_model, stratified_kfold=stratified_kfold, d_exp=d_exp, rng=rng)
+        loss_obs = L_obs(theta.theta_model, X_obs, mode=mode, d_obs=d_obs) 
         combined = (1 - lambda_) * loss_exp + lambda_  * loss_obs
     return combined
     
 
-def cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None, d=None, exp_model='aipw', stratified_kfold=False, random_state=None, rng=None):
+def cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None, d_exp=None, d_obs=None, exp_model='aipw', stratified_kfold=False, random_state=None, rng=None):
     """
     Calculate the cross validation error for each lambda.
     Args: 
@@ -298,7 +303,8 @@ def cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None, d=None
         lambda_vals: candidate lambda values
         mode: 'mean' - no-covariate setting; 'linear' - linear setting
         k_fold: number of folds
-        d: in linear setting, dimension of covariates (exclude treatment), here we use it for both experimental and observational data 
+        d_exp: in linear setting, dimension of covariates in experimental data (exclude treatment)
+        d_obs: in linear setting, dimension of covariates in observational data (exclude treatment)
         exp_model: 'aipw' or 'mean_diff' or 'response_func'
             'aipw' - the AIPW estimator;
             'mean_diff' - the outcome mean difference between treated;
@@ -323,21 +329,21 @@ def cross_validation(X_exp, X_obs, lambda_vals, mode='mean', k_fold=None, d=None
     for i, lambda_ in enumerate(lambda_vals):
         current_Q = 0
         if stratified_kfold:
-            numerator = cross_validator.split(X_exp, X_exp[:, d])
+            numerator = cross_validator.split(X_exp, X_exp[:, d_exp])
         else:
             numerator = cross_validator.split(X_exp)
         for train_index, val_index in numerator:
             # fit a model for each fold
-            model = model_class(mode=mode, d=d, exp_model=exp_model, stratified_kfold=stratified_kfold, rng=rng)
+            model = model_class(mode=mode, d_exp=d_exp, d_obs=d_obs, exp_model=exp_model, stratified_kfold=stratified_kfold, rng=rng)
             X_train, X_val = X_exp[train_index], X_exp[val_index]
             model.fit_model(lambda_, X_train, X_obs)
             with torch.no_grad():
-                l_exp_fold = L_exp(model.beta(lambda_, X_train, X_obs), X_val, mode=mode, exp_model=exp_model, stratified_kfold=stratified_kfold, d=d, rng=rng)
+                l_exp_fold = L_exp(model.beta(lambda_, X_train, X_obs), X_val, mode=mode, exp_model=exp_model, stratified_kfold=stratified_kfold, d_exp=d_exp, rng=rng)
                 current_Q += l_exp_fold.item()
         Q_values[i] += current_Q
     Q_values /= X_exp.shape[0]
     lambda_opt = lambda_vals[np.argmin(Q_values)] # optimal lambda
-    theta_opt = model_class(mode=mode, d=d, exp_model=exp_model, stratified_kfold=stratified_kfold, rng=rng)
+    theta_opt = model_class(mode=mode, d_exp=d_exp, d_obs=d_obs, exp_model=exp_model, stratified_kfold=stratified_kfold, rng=rng)
     theta_opt.fit_model(lambda_opt, X_exp, X_obs) # fitted model on full data using optimal lambda
     return Q_values, lambda_opt, theta_opt
 

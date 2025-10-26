@@ -13,7 +13,7 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+from causal_sim import cross_validation, lalonde_get_data
 import dask
 import pandas as pd
 
@@ -73,14 +73,15 @@ def run_simulation(sim):
 
     for group_id, group in enumerate(group_lists):
         for variables_id, variables in enumerate(variables_list):
-            d = len(variables)
+            d_exp = len(variables)
+            d_obs = len(variables)
             X_exp, X_obs = lalonde_get_data(df, group, variables)
             # begin bootstrap
             rng = np.random.default_rng(sim)
             X_exp = X_exp[rng.integers(0, X_exp.shape[0], size=X_exp.shape[0])]
             X_obs = X_obs[rng.integers(0, X_obs.shape[0], size=X_obs.shape[0])]
             Q_values, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', 
-                                                     k_fold=k_fold, d=d, exp_model=exp_model, stratified_kfold=stratified_kfold, random_state=sim)
+                                                     k_fold=k_fold, d_exp=d_exp, d_obs=d_obs, exp_model=exp_model, stratified_kfold=stratified_kfold, random_state=sim)
                                                   
             lambda_opt_all[group_id][variables_id] = lambda_opt
             ours_cv[group_id][variables_id] =  theta_opt.beta().item()

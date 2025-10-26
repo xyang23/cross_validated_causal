@@ -45,12 +45,13 @@ df['age2'] = df['age'] ** 2
 
 n_sims = 100 # number of simulations, 5000 in the paper
  
-d = len(variables)
+d_exp = len(variables)
+d_obs = len(variables)
 X_exp, X_obs = lalonde_get_data(df, group, variables)
 
 # Experimental data 
-Z_exp = X_exp[:, :d]
-A_exp = X_exp[:, d]
+Z_exp = X_exp[:, :d_exp]
+A_exp = X_exp[:, d_exp]
 Y_exp_real = X_exp[:, -1] 
 # fit a linear model, then get residuals mean and std
 exp_model = LinearRegression()
@@ -62,8 +63,8 @@ n_exp = X_exp.shape[0]
 true_te = exp_model.coef_[0]
 
 # Observational data
-Z_obs = X_obs[:, :d]
-A_obs = X_obs[:, d]
+Z_obs = X_obs[:, :d_obs]
+A_obs = X_obs[:, d_obs]
 Y_obs = X_obs[:, -1] 
 # fit a linear model, then get residuals mean and std
 obs_model = LinearRegression()
@@ -103,7 +104,7 @@ for sim in range(n_sims):
     obs_model.fit(np.concatenate((A_obs.reshape(-1, 1), Z_obs), axis=1), Y_obs)
     obs_estimate = obs_model.coef_[0]
 
-    Q_values, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', d=d, exp_model='response_func', k_fold=5, random_state=sim)
+    Q_values, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', d_exp=d_exp, d_obs=d_obs, exp_model='response_func', k_fold=5, random_state=sim)
 
     lambda_opt_all[sim] = lambda_opt
     ours_cv[sim] =  theta_opt.beta().item()

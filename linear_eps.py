@@ -2,7 +2,7 @@
 Simulations varying bias for the linear setting. 
 
 Usage: 
-    Modify dir_path to save the checkpoint and figures. When running, ignore the SyntaxWarning for figure production. 
+    Modify dir_path to save the checkpoint and figures. 
     The printed "Simulation" is not in order because of the parallel computing design.
     For parallel computing, change num_workers.
 """
@@ -13,7 +13,7 @@ import pickle
 import json
 from datetime import date
 import os
-from causal_sim import model_class, compute_exp_minmizer, L_exp, L_obs, combined_loss, cross_validation, true_pi_func, tilde_pi_func, lalonde_get_data, generate_data
+from causal_sim import compute_exp_minmizer, cross_validation, generate_data, true_pi_func, tilde_pi_func
 import dask
 
 random_seed = 2024
@@ -27,7 +27,8 @@ lambda_bin = 5 # number of candidate values of lambda, 50 in the paper
 lambda_vals = np.linspace(0, 1, lambda_bin) # candidate lambda values
 n_exp = 50 # number of experimental data 
 n_obs =  100 # number of observational data 
-d = 5 # dimensions of covariates in both data sources, here we use the same
+d_exp = 5 # dimensions of covariates in experimental data 
+d_obs = 5 # dimensions of covariates in observational data 
 noise = 1 # standard deviation of noise in outcomes
 exp_model ='aipw' # 'aipw', 'response_func', 'mean_diff' - see comments in causal_sim.py
 stratified_kfold = True # whether to stratify for cross-validation - see comments in causal_sim.py
@@ -48,7 +49,7 @@ if same_cov:
     exp_name = exp_name + "_same-cov"
     
 data_log = {'Experiment': exp_name,
-            'Settings': {'x_bins': x_bins, 'n_sims': n_sims, 'lambda_bin': lambda_bin, 'random_seed': random_seed, 'eps_range': eps_range, 'n_exp': n_exp, 'n_obs': n_obs, 'd': d, 'exp_model': exp_model,'stratified_kfold': stratified_kfold, 'true_te': true_te, 'k_fold': k_fold},
+            'Settings': {'x_bins': x_bins, 'n_sims': n_sims, 'lambda_bin': lambda_bin, 'random_seed': random_seed, 'eps_range': eps_range, 'n_exp': n_exp, 'n_obs': n_obs, 'd_exp': d_exp, 'd_obs': d_obs, 'exp_model': exp_model,'stratified_kfold': stratified_kfold, 'true_te': true_te, 'k_fold': k_fold},
             'ours_cv': ours_cv.tolist(),
             'exp_only': exp_only.tolist(),
             'obs_only': obs_only.tolist(),
@@ -73,27 +74,26 @@ def run_simulation(sim):
     res["obs_only"] = np.zeros(x_bins)
     # set random number generator such that each simulation in parallel doesn't generate the same random number for the same seed
     rng = np.random.default_rng(sim)
-    true_coef = rng.normal(size=2*d)
-    true_coef_exp = true_coef[0:d]
+    true_coef = rng.normal(size=d_exp+d_obs)
+    true_coef_exp = true_coef[0:d_exp]
     if same_cov:
-        true_coef_obs = true_coef[0:d]
+        true_coef_obs = true_coef[0:d_exp]
     else:
-        true_coef_obs = true_coef[d:2*d]
+        true_coef_obs = true_coef[d_exp:d_exp+d_obs]
     # generate experimental data
-    Z_exp, A_exp, Y_exp = generate_data(n_exp, d, true_coef_exp, true_te, true_pi_func, noise, rng=rng) 
+    Z_exp, A_exp, Y_exp = generate_data(n_exp, d_exp, true_coef_exp, true_te, true_pi_func, noise, rng=rng) 
     for x_ind in range(x_bins):
         te_bias = eps_vals[x_ind]
         # generate observational data (biased)
-        Z_obs, A_obs, Y_obs = generate_data(n_obs, d, true_coef_obs, true_te + te_bias, tilde_pi_func, noise)
+        Z_obs, A_obs, Y_obs = generate_data(n_obs, d_obs, true_coef_obs, true_te + te_bias, tilde_pi_func, noise)
         X_exp = np.concatenate((Z_exp, A_exp.reshape(-1, 1), Y_exp.reshape(-1, 1)), axis=1)
         X_obs = np.concatenate((Z_obs, A_obs.reshape(-1, 1), Y_obs.reshape(-1, 1)), axis=1)
-        Q_values, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', 
-                                                 k_fold=k_fold, d=d, exp_model=exp_model, stratified_kfold=stratified_kfold, random_state=sim) 
+        Q_values, lambda_opt, theta_opt = cross_validation(X_exp, X_obs, lambda_vals, mode='linear', k_fold=k_fold, d_exp=d_exp, d_obs=d_obs, exp_model=exp_model, stratified_kfold=stratified_kfold, random_state=sim) 
         res["lambda_opt_all"][x_ind] = lambda_opt
         res["ours_cv"][x_ind] =  theta_opt.beta().item()
-        exp_mini = compute_exp_minmizer(X_exp, mode='linear', exp_model=exp_model, stratified_kfold=stratified_kfold, d=d)
+        exp_mini = compute_exp_minmizer(X_exp, mode='linear', exp_model=exp_model, stratified_kfold=stratified_kfold, d_exp=d_exp)
         res["exp_only"][x_ind] = exp_mini 
-        obs_mini = compute_exp_minmizer(X_obs, mode='linear', exp_model=exp_model, stratified_kfold=stratified_kfold, d=d)
+        obs_mini = compute_exp_minmizer(X_obs, mode='linear', exp_model=exp_model, stratified_kfold=stratified_kfold, d_exp=d_obs)
         res["obs_only"][x_ind] = obs_mini
     return res
  
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     obs_only = np.column_stack([res["obs_only"] for res in results_list])
     
     data_log = {'Experiment': exp_name,
-                'Settings': {'x_bins': x_bins, 'n_sims': n_sims, 'lambda_bin': lambda_bin, 'random_seed': random_seed, 'eps_range': eps_range, 'n_exp': n_exp, 'n_obs': n_obs, 'd': d, 'exp_model': exp_model,'stratified_kfold': stratified_kfold, 'true_te': true_te, 'k_fold': k_fold},
+                'Settings': {'x_bins': x_bins, 'n_sims': n_sims, 'lambda_bin': lambda_bin, 'random_seed': random_seed, 'eps_range': eps_range, 'n_exp': n_exp, 'n_obs': n_obs, 'd_exp': d_exp, 'd_obs': d_obs, 'exp_model': exp_model,'stratified_kfold': stratified_kfold, 'true_te': true_te, 'k_fold': k_fold},
                 'ours_cv': ours_cv.tolist(),
                 'exp_only': exp_only.tolist(),
                 'obs_only': obs_only.tolist(),
@@ -139,8 +139,8 @@ if __name__ == '__main__':
     plt.rcParams['font.size'] = 10
     
     markersize = 3.6
-    plt.plot(eps_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label='Only use $X^{\mathrm{exp}}$')
-    plt.plot(eps_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label='Only use $X^{\mathrm{obs}}$')
+    plt.plot(eps_vals, exp_only_mean, color='green', marker='x',  markersize=markersize, label=r'Only use $X^{\mathrm{exp}}$')
+    plt.plot(eps_vals, obs_only_mean, color='brown', marker='v',  markersize=markersize, label=r'Only use $X^{\mathrm{obs}}$')
     plt.plot(eps_vals, ours_cv_mean, color='orange', marker='.',  markersize=markersize, label=r'Ours, $\beta(\widehat\theta (\widehat\lambda))$')
     
     plt.xticks(fontsize=12)
@@ -165,8 +165,8 @@ if __name__ == '__main__':
     
     markersize = 5
     lambda_opt_ci = conf_interval(lambda_opt_all)
-    plt.plot(eps_vals, lambda_opt_mean, color='blue', label='Mean of $\widehat\lambda$ selected by cross-validation', marker='x',  markersize=markersize)
-    plt.fill_between(eps_vals, *lambda_opt_ci, color='blue', alpha=0.2, label='$\pm$ Standard deviation of $\widehat\lambda$')
+    plt.plot(eps_vals, lambda_opt_mean, color='blue', label=r'Mean of $\widehat\lambda$ selected by cross-validation', marker='x',  markersize=markersize)
+    plt.fill_between(eps_vals, *lambda_opt_ci, color='blue', alpha=0.2, label=r'$\pm$ Standard deviation of $\widehat\lambda$')
     
     exp_ours_ratio = np.divide(exp_only_mean, ours_cv_mean)
     
