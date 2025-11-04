@@ -1,5 +1,8 @@
 # Cross-Validated Causal Inference (CVCI)
+## Paper
+[ArXiv link](http://arxiv.org/abs/2511.00727)
 
+[Project website](https://sites.google.com/berkeley.edu/cross-validated-causal/)
 ##  Example use
 Install missing packages if needed. In the terminal, run 
 ```
